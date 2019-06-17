@@ -1,7 +1,6 @@
-A library for Dart developers.
+Dart API for the DERIVA platform (preview).
 
-Created from templates made available by Stagehand under a BSD-style
-[license](https://github.com/dart-lang/stagehand/blob/master/LICENSE).
+This library is an early preview and is not yet ready for broad usage.
 
 ## Usage
 
@@ -11,7 +10,21 @@ A simple usage example:
 import 'package:deriva/deriva.dart';
 
 main() {
-  var awesome = new Awesome();
+  // properties that will be needed to establish a client connection
+  String hostname = 'localhost';
+  String catalog_id = '1';
+  String token = '12345678909';
+  
+  // create credential and client
+  var credential = format_credential(token: token);
+  var client = ERMrestClient(hostname, catalog_id, credential: credential);
+  
+  // get a set of entity resources
+  var data = client.get('/entity/dataset?limit=10');
+  print(data);
+  
+  // close the client connection, when finished
+  client.close();
 }
 ```
 
@@ -19,4 +32,4 @@ main() {
 
 Please file feature requests and bugs at the [issue tracker][tracker].
 
-[tracker]: http://example.com/issues/replaceme
+[tracker]: https://github.com/robes/deriva-dart/issues
