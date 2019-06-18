@@ -15,15 +15,27 @@ main(List<String> arguments) async {
 
   try {
     // Get an entity resource
-    List<dynamic> entities = await client.get('/entity/dataset?limit=10');
-    for (var row in entities) {
-      print(row);
-    }
+    var entities = await client.query('/entity/isa:dataset?limit=3');
+    print("Queried entities: ${entities}");
+
+    // Add a new dataset entity (all post/puts are by lists of entities)
+    entities = [{'title': 'a new dataset', 'project': 311}]; // these are required fields
+    entities = await client.createEntities('isa', 'dataset', entities, defaults: {'id', 'accession', 'released'});
+    print("Created entities: ${entities}");
+
+    // Update the new dataset entity
+    entities[0]['title'] = 'an updated dataset';
+    entities = await client.updateEntities('isa', 'dataset', entities, targets: {'title'});
+    print("Updated entities: ${entities}");
+
+    // Delete the new dataset entity
+    await client.delete('/entity/isa:dataset/RID=${entities[0]['RID']}');
   }
   catch (e) {
-    print(e);
+    print("Ooops: ${e}");
   }
-
-  // Close the client.
-  client.close();
+  finally {
+    // Close the client.
+    client.close();
+  }
 }

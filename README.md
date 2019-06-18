@@ -1,6 +1,6 @@
-Dart API for the DERIVA platform (preview).
+Dart API for the DERIVA platform.
 
-This library is an early preview and is not yet ready for broad usage.
+This library is an early prototype and is not yet ready for broad usage.
 
 ## Usage
 
@@ -19,12 +19,16 @@ main() {
   var credential = format_credential(token: token);
   var client = ERMrestClient(hostname, catalog_id, credential: credential);
   
-  // get a set of entity resources
-  var data = client.get('/entity/dataset?limit=10');
-  print(data);
-  
-  // close the client connection, when finished
-  client.close();
+  // query the catalog using ERMrest paths
+  try {
+    var data = client.query('/entity/dataset?limit=10');
+    print(data);
+  } catch (e) {
+    print(e);
+  } finally {
+    // close the client connection, when finished
+    client.close();
+  }
 }
 ```
 

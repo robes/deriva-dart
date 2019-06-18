@@ -100,8 +100,7 @@ class DerivaBinding {
     }
   }
 
-  /// Gets the resource for [path] from [hostname] and returns the response
-  /// body.
+  /// GETs the resource for [path] and returns the response body.
   Future<Object> get(String path, {Map<String, String> headers}) async {
     _client = _client != null ? _client : http.Client();
     headers = await _updateAuthorizationHeader(headers);
@@ -117,12 +116,24 @@ class DerivaBinding {
     return response.body;
   }
 
-  /// Posts [data] to the [path] and returns the response body.
+  /// POSTs [data] to the [path] and returns the response body.
   Future<Object> post(String path, {Object data, Map<String, String> headers}) async {
     _client = _client != null ? _client : http.Client();
     headers = await _updateAuthorizationHeader(headers);
 
-    var response = await _client.post(path, body: data);
+    var response = await _client.post('https://${hostname}${path}', body: data, headers: headers);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw http.ClientException('Failed to post "${path}": ${response.body}');
+    }
+    return response.body;
+  }
+
+  /// PUTs [data] to the [path] and returns the response body.
+  Future<Object> put(String path, {Object data, Map<String, String> headers}) async {
+    _client = _client != null ? _client : http.Client();
+    headers = await _updateAuthorizationHeader(headers);
+
+    var response = await _client.put('https://${hostname}${path}', body: data, headers: headers);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw http.ClientException('Failed to post "${path}": ${response.body}');
     }
@@ -133,6 +144,22 @@ class DerivaBinding {
   void close() {
     _client?.close();
   }
+
+  /// DELETEs the resource for [path].
+  Future<Object> delete(String path, {Map<String, String> headers}) async {
+    _client = _client != null ? _client : http.Client();
+    headers = await _updateAuthorizationHeader(headers);
+
+    if (path == null || path == '') {
+      throw ArgumentError("Invalid path: null or '' not allowed");
+    }
+
+    var response = await _client.delete('https://${hostname}${path}', headers: headers);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw http.ClientException('Failed to delete "${path}": ${response.body}');
+    }
+    return response.body;
+  }
 }
 
 
@@ -141,6 +168,9 @@ class ERMrestClient extends DerivaBinding {
 
   /// The catalog identifier including snapshot (optional).
   String catalog;
+
+  /// The system columns
+  static const Set<String> _syscols = {'RID', 'RCB', 'RCT', 'RMB', 'RMT'};
 
   /// Initializes the ERMrest client binding to [hostname] and [catalog] with
   /// [credential].
@@ -153,18 +183,107 @@ class ERMrestClient extends DerivaBinding {
     return headers;
   }
 
-  /// Gets the resource for [path] from [hostname] and returns JSON decoded object.
+  /// GETs the resource for [path] and returns JSON decoded response.
   Future<Object> get(String path, {Map<String, String> headers}) async {
     headers = _updateContentTypeHeaders(headers);
     var response = await super.get('/ermrest/catalog/${catalog}${path}', headers: headers);
     return convert.jsonDecode(response);
   }
 
-  /// Posts [data] to the [path] and returns JSON decoded object.
+  /// POSTs [data] to the [path] and returns JSON decoded response.
   Future<Object> post(String path, {Object data, Map<String, String> headers}) async {
     headers = _updateContentTypeHeaders(headers);
     String body = data != null ? convert.jsonEncode(data) : null;
     var response = await super.post('/ermrest/catalog/${catalog}${path}', data: body, headers: headers);
     return convert.jsonDecode(response);
+  }
+
+  /// PUTs [data] to the [path] and returns JSON decoded response.
+  Future<Object> put(String path, {Object data, Map<String, String> headers}) async {
+    headers = _updateContentTypeHeaders(headers);
+    String body = data != null ? convert.jsonEncode(data) : null;
+    var response = await super.put('/ermrest/catalog/${catalog}${path}', data: body, headers: headers);
+    return convert.jsonDecode(response);
+  }
+
+  /// DELETEs the resource for [path].
+  Future<Object> delete(String path, {Map<String, String> headers}) async {
+    headers = _updateContentTypeHeaders(headers);
+    return await super.delete('/ermrest/catalog/${catalog}${path}', headers: headers);
+  }
+
+  /// Queries the catalog data based on the given [path].
+  Future<List<dynamic>> query(String path) async {
+    return await get(path);
+  }
+
+  /// Creates [entities] in the [schemaName]:[tableName] table.
+  ///
+  /// Use [defaults] for columns that should be given a server-side generated
+  /// default value. Use [nondefaults] to suppress server-side generated default
+  /// values. By default, the ERMrest system columns will be added to the
+  /// [deaults] set if not found in the [nondefaults] set, unless
+  /// [addSystemDefaults] is `false`.
+  Future<List<dynamic>> createEntities(
+      String schemaName, String tableName, List<dynamic> entities,
+      {Set<String> defaults=const {}, Set<String> nondefaults=const {}, addSystemDefaults=true}) async {
+
+    // Base path string
+    String path = '/entity/${Uri.encodeComponent(schemaName)}:${Uri.encodeComponent(tableName)}';
+
+    // Defaults option
+    List<String> options = [];
+    if (defaults.isNotEmpty || addSystemDefaults) {
+      defaults = Set<String>.from(defaults);
+      if (addSystemDefaults) {
+        defaults.addAll(_syscols.difference(nondefaults));
+      }
+      var defaultsEncoded = defaults.map((e) => Uri.encodeComponent(e)).join(',');
+      options.add('defaults=${defaultsEncoded}');
+    }
+
+    // Nondefaults option
+    if (nondefaults.isNotEmpty) {
+      var nondefaultsEncoded = nondefaults.map((e) => Uri.encodeComponent(e)).join(',');
+      options.add('nondefaults=${nondefaultsEncoded}');
+    }
+
+    // Append options to path, if any
+    if (options.isNotEmpty) {
+      path = '${path}?${options.join('&')}';
+    }
+
+    return await post(path, data: entities);
+  }
+
+  /// Updates [entities] in the [schemaName]:[tableName] table.
+  ///
+  /// Use [correlation] to specify the columns to use as the keys of the update,
+  /// by default `{'RID'}`. Use [targets] to specify the columns to be updated
+  /// in the matched rows, by default the keys in the first element in
+  /// [entities] minus the system columns.
+  Future<List<dynamic>> updateEntities(
+      String schemaName, String tableName, List<dynamic> entities,
+      {Set<String> correlation=const {'RID'}, Set<String> targets=const {}}) async {
+
+    // Encode the correlation columns
+    Set<String> correlationEnc = Set<String>.from(correlation.map((e) => Uri.encodeComponent(e)));
+
+    // Initialize and encode the target columns
+    Set<String> targetsEnc = {};
+    if (targets.isNotEmpty) {
+      targetsEnc = Set<String>.from(targets.map((e) => Uri.encodeComponent(e)));
+    }
+    else {
+      var exclusionsEnc = correlationEnc.union(_syscols);
+      var keysEnc = Set<String>.from(entities[0].keys.map((e) => Uri.encodeComponent(e)));
+      targetsEnc = keysEnc.difference(exclusionsEnc);
+    }
+
+    // Path
+    String path = '/attributegroup/${Uri.encodeComponent(schemaName)}:${Uri.encodeComponent(tableName)}';
+    path += '/${correlationEnc.join(',')};${targetsEnc.join(',')}';
+
+    return await put(path, data: entities);
   }
 }
