@@ -9,7 +9,7 @@ A simple usage example:
 ```dart
 import 'package:deriva/deriva.dart';
 
-main() {
+main() async {
   // properties that will be needed to establish a client connection
   String hostname = 'localhost';
   String catalog_id = '1';
@@ -21,7 +21,7 @@ main() {
   
   // query the catalog using ERMrest paths
   try {
-    var data = client.query('/entity/dataset?limit=10');
+    var data = await client.query('/entity/dataset?limit=10');
     print(data);
   } catch (e) {
     print(e);
