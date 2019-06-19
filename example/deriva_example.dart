@@ -25,11 +25,12 @@ main(List<String> arguments) async {
 
     // Update the new dataset entity
     entities[0]['title'] = 'an updated dataset';
-    entities = await client.updateEntities('isa', 'dataset', entities, targets: {'title'});
+    entities = await client.updateEntities('isa', 'dataset', entities, correlation: {'RID'}, targets: {'title'});
     print("Updated entities: ${entities}");
 
     // Delete the new dataset entity
     await client.delete('/entity/isa:dataset/RID=${entities[0]['RID']}');
+    print('Deleted the new/updated entity');
   }
   catch (e) {
     print("Ooops: ${e}");
