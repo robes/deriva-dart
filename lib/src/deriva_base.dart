@@ -113,7 +113,7 @@ class DerivaBinding {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw http.ClientException('Failed to get "${path}": ${response.body}');
     }
-    return response.body;
+    return convert.utf8.decode(response.body.codeUnits);
   }
 
   /// POSTs [data] to the [path] and returns the response body.
@@ -125,7 +125,7 @@ class DerivaBinding {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw http.ClientException('Failed to post "${path}": ${response.body}');
     }
-    return response.body;
+    return convert.utf8.decode(response.body.codeUnits);
   }
 
   /// PUTs [data] to the [path] and returns the response body.
@@ -137,7 +137,7 @@ class DerivaBinding {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw http.ClientException('Failed to post "${path}": ${response.body}');
     }
-    return response.body;
+    return convert.utf8.decode(response.body.codeUnits);
   }
 
   /// Close the client connection.
@@ -158,7 +158,7 @@ class DerivaBinding {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw http.ClientException('Failed to delete "${path}": ${response.body}');
     }
-    return response.body;
+    return convert.utf8.decode(response.body.codeUnits);
   }
 }
 
