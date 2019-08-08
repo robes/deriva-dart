@@ -2,6 +2,13 @@ import 'dart:convert' as convert;
 import 'package:http/http.dart' as http;
 import 'package:http_retry/http_retry.dart';
 
+/// Retriable error codes in DERIVA.
+///   -1: no connection
+///    0: timeout
+///  500: internal server error
+///  503: service unavailable
+Set<int> _retriableErrorCodes = {-1, 0, 500, 503};
+
 /// Formats a Deriva client credential with either a [token] or a [username] and
 /// [password].
 ///
@@ -33,7 +40,10 @@ class DerivaBinding {
 
   /// The http client connection.
   http.Client get client {
-    _client = _client ?? http.Client();
+    _client = _client ?? RetryClient(
+      http.Client(),
+      when: ((response) => _retriableErrorCodes.contains(response.statusCode))
+    );
     return _client;
   }
 
