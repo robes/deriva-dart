@@ -1,5 +1,14 @@
 import 'dart:convert' as convert;
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_retry/http_retry.dart';
+
+/// Retriable error codes in DERIVA.
+///   -1: no connection
+///    0: timeout
+///  500: internal server error
+///  503: service unavailable
+Set<int> _retriableErrorCodes = {-1, 0, 500, 503};
 
 /// Formats a Deriva client credential with either a [token] or a [username] and
 /// [password].
@@ -27,8 +36,18 @@ class DerivaBinding {
   /// The client credential object.
   Map<String, String> credential;
 
-  /// The http client connection.
+  /// The internal state of the http client connection.
   http.Client _client;
+
+  /// The http client connection.
+  http.Client get client {
+    _client = _client ?? RetryClient(
+      http.Client(),
+      when: ((response) => _retriableErrorCodes.contains(response.statusCode)),
+      whenError: ((error, __) => error is SocketException)
+    );
+    return _client;
+  }
 
   /// Initializes a binding to a Deriva server at [hostname] with client
   /// [credential] (optional).
@@ -65,7 +84,7 @@ class DerivaBinding {
   /// returns the server cookie token.
   Future<String> _postAuthnSession() async {
     // Post credential to the server
-    var response = await _client.post('https://${this.hostname}/authn/session', body: credential);
+    var response = await client.post('https://${this.hostname}/authn/session', body: credential);
     if (response.statusCode != 200) {
       throw http.ClientException('Authentication Failure: ${response.body}');
     }
@@ -102,14 +121,13 @@ class DerivaBinding {
 
   /// GETs the resource for [path] and returns the response body.
   Future<Object> get(String path, {Map<String, String> headers}) async {
-    _client = _client != null ? _client : http.Client();
     headers = await _updateAuthorizationHeader(headers);
 
     if (path == null || path == '') {
       throw ArgumentError("Invalid path: null or '' not allowed");
     }
 
-    var response = await _client.get('https://${hostname}${path}', headers: headers);
+    var response = await client.get('https://${hostname}${path}', headers: headers);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw http.ClientException('Failed to get "${path}": ${response.body}');
     }
@@ -118,10 +136,9 @@ class DerivaBinding {
 
   /// POSTs [data] to the [path] and returns the response body.
   Future<Object> post(String path, {Object data, Map<String, String> headers}) async {
-    _client = _client != null ? _client : http.Client();
     headers = await _updateAuthorizationHeader(headers);
 
-    var response = await _client.post('https://${hostname}${path}', body: data, headers: headers);
+    var response = await client.post('https://${hostname}${path}', body: data, headers: headers);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw http.ClientException('Failed to post "${path}": ${response.body}');
     }
@@ -130,10 +147,9 @@ class DerivaBinding {
 
   /// PUTs [data] to the [path] and returns the response body.
   Future<Object> put(String path, {Object data, Map<String, String> headers}) async {
-    _client = _client != null ? _client : http.Client();
     headers = await _updateAuthorizationHeader(headers);
 
-    var response = await _client.put('https://${hostname}${path}', body: data, headers: headers);
+    var response = await client.put('https://${hostname}${path}', body: data, headers: headers);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw http.ClientException('Failed to post "${path}": ${response.body}');
     }
@@ -143,18 +159,18 @@ class DerivaBinding {
   /// Close the client connection.
   void close() {
     _client?.close();
+    _client = null;
   }
 
   /// DELETEs the resource for [path].
   Future<Object> delete(String path, {Map<String, String> headers}) async {
-    _client = _client != null ? _client : http.Client();
     headers = await _updateAuthorizationHeader(headers);
 
     if (path == null || path == '') {
       throw ArgumentError("Invalid path: null or '' not allowed");
     }
 
-    var response = await _client.delete('https://${hostname}${path}', headers: headers);
+    var response = await client.delete('https://${hostname}${path}', headers: headers);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw http.ClientException('Failed to delete "${path}": ${response.body}');
     }

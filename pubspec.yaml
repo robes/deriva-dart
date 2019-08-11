@@ -1,14 +1,14 @@
 name: deriva
-description: A Dart API for the DERIVA platform.
-# version: 0.0.1
-# homepage: https://github.com/robes/deriva-dart
-# author: schuler <robes@users.noreply.github.com>
+version: 0.0.2
+description: Dart API for the DERIVA platform.
+homepage: https://deriva.isi.edu
 
 environment:
   sdk: '>=2.2.0 <3.0.0'
 
 dependencies:
   http: ^0.12.0+2
+  http_retry: ^0.1.1+3
 
 dev_dependencies:
   pedantic: ^1.0.0

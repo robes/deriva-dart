@@ -1,6 +1,6 @@
 Dart API for the DERIVA platform.
 
-This library is an early prototype and is not yet ready for broad usage.
+This library offers a very minimal API for the DERIVA platform.
 
 ## Usage
 
