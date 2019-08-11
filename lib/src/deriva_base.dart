@@ -43,6 +43,7 @@ class DerivaBinding {
   http.Client get client {
     _client = _client ?? RetryClient(
       http.Client(),
+      retries: 5,
       when: ((response) => _retriableErrorCodes.contains(response.statusCode)),
       whenError: ((error, __) => error is SocketException)
     );
