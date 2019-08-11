@@ -1,4 +1,5 @@
 import 'dart:convert' as convert;
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_retry/http_retry.dart';
 
@@ -42,7 +43,8 @@ class DerivaBinding {
   http.Client get client {
     _client = _client ?? RetryClient(
       http.Client(),
-      when: ((response) => _retriableErrorCodes.contains(response.statusCode))
+      when: ((response) => _retriableErrorCodes.contains(response.statusCode)),
+      whenError: ((error, __) => error is SocketException)
     );
     return _client;
   }
