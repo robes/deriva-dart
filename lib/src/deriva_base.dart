@@ -45,7 +45,7 @@ class DerivaBinding {
       http.Client(),
       retries: 5,
       when: ((response) => _retriableErrorCodes.contains(response.statusCode)),
-      whenError: ((error, __) => error is SocketException)
+      whenError: ((error, __) => error is SocketException || error.toString() == 'Connection closed before full header was received')
     );
     return _client;
   }
