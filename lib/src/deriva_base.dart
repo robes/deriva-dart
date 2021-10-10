@@ -85,7 +85,7 @@ class DerivaBinding {
   /// returns the server cookie token.
   Future<String> _postAuthnSession() async {
     // Post credential to the server
-    var response = await client.post('https://${this.hostname}/authn/session', body: credential);
+    var response = await client.post(Uri.parse('https://${this.hostname}/authn/session'), body: credential);
     if (response.statusCode != 200) {
       throw http.ClientException('Authentication Failure: ${response.body}');
     }
@@ -128,7 +128,7 @@ class DerivaBinding {
       throw ArgumentError("Invalid path: null or '' not allowed");
     }
 
-    var response = await client.get('https://${hostname}${path}', headers: headers);
+    var response = await client.get(Uri.parse('https://${hostname}${path}'), headers: headers);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw http.ClientException('Failed to get "${path}": ${response.body}');
     }
@@ -139,7 +139,7 @@ class DerivaBinding {
   Future<Object> post(String path, {Object data, Map<String, String> headers}) async {
     headers = await _updateAuthorizationHeader(headers);
 
-    var response = await client.post('https://${hostname}${path}', body: data, headers: headers);
+    var response = await client.post(Uri.parse('https://${hostname}${path}'), body: data, headers: headers);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw http.ClientException('Failed to post "${path}": ${response.body}');
     }
@@ -150,7 +150,7 @@ class DerivaBinding {
   Future<Object> put(String path, {Object data, Map<String, String> headers}) async {
     headers = await _updateAuthorizationHeader(headers);
 
-    var response = await client.put('https://${hostname}${path}', body: data, headers: headers);
+    var response = await client.put(Uri.parse('https://${hostname}${path}'), body: data, headers: headers);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw http.ClientException('Failed to post "${path}": ${response.body}');
     }
@@ -171,7 +171,7 @@ class DerivaBinding {
       throw ArgumentError("Invalid path: null or '' not allowed");
     }
 
-    var response = await client.delete('https://${hostname}${path}', headers: headers);
+    var response = await client.delete(Uri.parse('https://${hostname}${path}'), headers: headers);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw http.ClientException('Failed to delete "${path}": ${response.body}');
     }

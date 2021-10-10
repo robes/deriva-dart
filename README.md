@@ -32,6 +32,23 @@ main() async {
 }
 ```
 
+## Running the tests
+
+To run the tests set the following environment variables:
+
+```shell
+$ export DERIVA_TEST_HOSTNAME=deriva.example.org
+$ export DERIVA_TEST_CATALOG=1
+$ export DERIVA_TEST_CREDENTIAL=123456789012345678901234
+```
+
+Then run the dart test command.
+
+```shell
+$  dart test                                             
+00:03 +7: All tests passed!
+```
+
 ## Features and bugs
 
 Please file feature requests and bugs at the [issue tracker][tracker].
